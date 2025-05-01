@@ -3,32 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Chatbot</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Include Pygments CSS for code highlighting if you expect code in responses -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pygments/2.15.1/styles/default.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome for Icons -->
+    <title>Web AI Chat Bot</title> <!-- Changed Title back -->
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Pygments Code Highlight CSS -->
+     <link id="pygments-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pygments/2.15.1/styles/monokai.min.css">
+     <!-- Add a link for the light theme CSS for Pygments if needed -->
+     <link id="pygments-theme-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pygments/2.15.1/styles/default.min.css" disabled> <!-- Start disabled -->
+    <!-- Link to your CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body> <!-- Body tag will be targeted by JS for theme class -->
     <div class="chat-container">
-        <h1><i class="fas fa-robot"></i> AI Chatbot</h1>
-        <div id="chat-window" class="chat-window">
-            <!-- Chat messages will appear here -->
-             <div class="message bot-message">
-                <i class="fas fa-brain bot-icon"></i>
-                <div class="message-content"><p>Hello! How can I help you today?</p></div>
+        <header class="chat-header">
+            <h1><i class="fa-solid fa-robot"></i> Web AI Chat Bot</h1> <!-- Updated icon -->
+            <div class="header-buttons">
+                <button id="theme-toggle-button" title="Toggle Theme">
+                    <i class="fas fa-moon"></i> <!-- Default to moon (for light theme) -->
+                </button>
+                <button id="clear-button" title="Clear Chat History">
+                    <i class="fas fa-trash-alt"></i> <span>Clear Chat</span>
+                </button>
             </div>
-        </div>
-        <div id="input-area" class="input-area">
-            <textarea id="message-input" placeholder="Type your message here..." rows="1"></textarea>
-            <button id="send-button" title="Send Message"><i class="fas fa-paper-plane"></i></button>
-            <button id="clear-button" title="Clear Chat History"><i class="fas fa-trash-alt"></i></button>
-        </div>
-        <div id="thinking-indicator" class="thinking-indicator" style="display: none;">
-             <i class="fas fa-spinner fa-spin"></i> Thinking...
-        </div>
+        </header>
+
+        <main id="chat-window" class="chat-window">
+            <!-- Messages added by JS -->
+        </main>
+
+         <div id="thinking-indicator" class="thinking-indicator" style="display: none;">
+             <div class="dot-flashing"></div>
+             <span>AI is thinking...</span> <!-- Updated text -->
+         </div>
+
+        <footer class="input-area">
+            <textarea id="message-input" placeholder="Ask the AI anything..." rows="1"></textarea> <!-- Updated placeholder -->
+            <button id="send-button" title="Send Message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
