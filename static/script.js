@@ -1,133 +1,224 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
     const chatWindow = document.getElementById('chat-window');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
     const clearButton = document.getElementById('clear-button');
     const thinkingIndicator = document.getElementById('thinking-indicator');
+    const themeToggleButton = document.getElementById('theme-toggle-button');
+    const bodyElement = document.body;
+    // Optional: Pygments theme links (if swapping themes)
+    // const pygmentsThemeLink = document.getElementById('pygments-theme');
+    // const pygmentsThemeLightLink = document.getElementById('pygments-theme-light');
 
-    // Function to add a message to the chat window
-    function addMessage(htmlContent, sender) {
+    // --- Constants ---
+    const THEME_KEY = 'chat_theme';
+    const LIGHT_THEME = 'light';
+    const DARK_THEME = 'dark';
+
+    // --- Functions ---
+
+    function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function addMessage(htmlContent, sender, isUserMessage = false) {
+        // ... (addMessage function remains the same as before) ...
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', `${sender}-message`);
 
-        const iconClass = sender === 'user' ? 'fa-user' : 'fa-brain'; // Use fa-brain for bot
-        const iconColor = sender === 'user' ? '#007bff' : '#6c757d';
-        const iconElement = `<i class="fas ${iconClass}" style="color: ${iconColor}; margin-${sender === 'user' ? 'left' : 'right'}: 10px; font-size: 1.2em; margin-top: 5px;"></i>`;
+        const iconClass = sender === 'user' ? 'fa-user' : 'fa-robot'; // fa-robot for bot
+        const iconElement = `<i class="fas ${iconClass} message-icon"></i>`;
 
         const contentElement = document.createElement('div');
         contentElement.classList.add('message-content');
-        contentElement.innerHTML = htmlContent; // Use innerHTML as response is HTML
+
+        if (isUserMessage) {
+            const p = document.createElement('p');
+            p.textContent = htmlContent;
+            contentElement.appendChild(p);
+        } else {
+            contentElement.innerHTML = htmlContent;
+        }
 
         if (sender === 'user') {
-            messageElement.appendChild(contentElement); // Text first
-            messageElement.insertAdjacentHTML('beforeend', iconElement); // Then icon
+            messageElement.appendChild(contentElement);
+            messageElement.insertAdjacentHTML('beforeend', iconElement);
         } else {
-            messageElement.insertAdjacentHTML('afterbegin', iconElement); // Icon first
-            messageElement.appendChild(contentElement); // Then text
+            messageElement.insertAdjacentHTML('afterbegin', iconElement);
+            messageElement.appendChild(contentElement);
         }
 
         chatWindow.appendChild(messageElement);
-        chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll to bottom
+        chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
     }
 
-    // Function to handle sending a message
+    function addInitialGreeting() {
+         if (chatWindow.children.length === 0) {
+              addMessage('<p>Hello! How can I assist you today?</p>', 'bot');
+         }
+    }
+
     async function sendMessage() {
+        // ... (sendMessage function remains the same as before) ...
         const messageText = messageInput.value.trim();
-        if (!messageText) return; // Don't send empty messages
+        if (!messageText) return;
 
-        // Display user message immediately
-        // Escape basic HTML in user input before displaying to prevent XSS
-        const escapedUserMessage = messageText.replace(/</g, "<").replace(/>/g, ">");
-        addMessage(`<p>${escapedUserMessage}</p>`, 'user'); // Wrap in <p> for consistency
-        messageInput.value = ''; // Clear input
-        messageInput.style.height = 'auto'; // Reset height after sending
-        messageInput.focus(); // Keep focus on input
+        addMessage(messageText, 'user', true);
+        messageInput.value = '';
+        adjustTextareaHeight();
+        messageInput.focus();
 
-        // Show thinking indicator and disable input/button
-        thinkingIndicator.style.display = 'block';
-        sendButton.disabled = true;
-        messageInput.disabled = true;
-        clearButton.disabled = true; // Disable clear while thinking
+        showThinking(true);
 
         try {
             const response = await fetch('/chat', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: messageText }),
             });
 
+            let data;
             if (!response.ok) {
-                // Try to get error message from backend response body
-                let errorMsg = `Error: ${response.statusText}`;
+                let errorMsg = `Server error: ${response.status}`;
                 try {
-                    const errorData = await response.json();
-                    errorMsg = errorData.error || errorMsg;
-                } catch (e) { /* Ignore if response body is not JSON */ }
-                 addMessage(`<p>⚠️ ${errorMsg}</p>`, 'bot');
+                    data = await response.json();
+                    errorMsg = data.error || errorMsg;
+                } catch (e) { /* Ignore */ }
+                 addMessage(`<p>⚠️ Sorry, something went wrong: ${escapeHTML(errorMsg)}</p>`, 'bot');
                 console.error('Chat request failed:', response.status, response.statusText);
-
             } else {
-                const data = await response.json();
+                data = await response.json();
                 if (data.error) {
-                    addMessage(`<p>⚠️ ${data.error}</p>`, 'bot');
-                } else {
-                    // Add bot's HTML response
+                    addMessage(`<p>⚠️ Error: ${escapeHTML(data.error)}</p>`, 'bot');
+                } else if (data.response) {
                     addMessage(data.response, 'bot');
+                } else {
+                     addMessage(`<p>⚠️ Received an empty response from the server.</p>`, 'bot');
                 }
             }
         } catch (error) {
-            console.error('Error sending message:', error);
-            addMessage(`<p>⚠️ Could not connect to the server. Please try again later.</p>`, 'bot');
+            console.error('Network or fetch error:', error);
+             addMessage(`<p>⚠️ Network error. Could not connect to the server. Please check your connection and try again.</p>`, 'bot');
         } finally {
-            // Hide thinking indicator and re-enable input/button
-            thinkingIndicator.style.display = 'none';
-            sendButton.disabled = false;
-            messageInput.disabled = false;
-            clearButton.disabled = false; // Re-enable clear button
+            showThinking(false);
         }
     }
 
-    // Function to clear chat history
+    function showThinking(isThinking) {
+        // ... (showThinking function remains the same as before) ...
+        if (isThinking) {
+            thinkingIndicator.style.display = 'flex';
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            clearButton.disabled = true;
+            themeToggleButton.disabled = true; // Disable theme toggle while thinking
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        } else {
+            thinkingIndicator.style.display = 'none';
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            clearButton.disabled = false;
+             themeToggleButton.disabled = false; // Re-enable theme toggle
+            messageInput.focus();
+        }
+    }
+
     async function clearChat() {
-        if (!confirm("Are you sure you want to clear the chat history?")) {
+        // ... (clearChat function remains the same as before) ...
+        if (!confirm("Are you sure you want to clear the entire chat history?")) {
             return;
         }
         try {
             const response = await fetch('/clear', { method: 'POST' });
             if (response.ok) {
-                chatWindow.innerHTML = ''; // Clear the UI
-                // Add the initial greeting back
-                addMessage('<p>Hello! How can I help you today?</p>', 'bot');
+                chatWindow.innerHTML = '';
+                addInitialGreeting();
                 console.log("Chat history cleared.");
             } else {
+                 const errorData = await response.json().catch(() => ({}));
+                 const errorMsg = errorData.error || `Server error (${response.status})`;
+                 alert(`Failed to clear chat history: ${errorMsg}`);
                  console.error('Failed to clear chat history on server.');
-                 alert('Failed to clear chat history on the server.');
             }
         } catch (error) {
              console.error('Error clearing chat:', error);
-             alert('An error occurred while trying to clear the chat.');
+             alert('An network error occurred while trying to clear the chat.');
         }
     }
 
+    function adjustTextareaHeight() {
+        // ... (adjustTextareaHeight function remains the same as before) ...
+        messageInput.style.height = 'auto';
+        const maxHeight = parseInt(window.getComputedStyle(messageInput).maxHeight, 10);
+        const newHeight = Math.min(messageInput.scrollHeight, maxHeight);
+        messageInput.style.height = newHeight + 'px';
+    }
+
+    // --- Theme Handling ---
+    function applyTheme(theme) {
+        if (theme === DARK_THEME) {
+            bodyElement.classList.add('dark-theme');
+            themeToggleButton.innerHTML = '<i class="fas fa-sun"></i>'; // Show sun icon
+            // Optional: Enable dark Pygments theme, disable light
+            // if (pygmentsThemeLink && pygmentsThemeLightLink) {
+            //     pygmentsThemeLink.disabled = false;
+            //     pygmentsThemeLightLink.disabled = true;
+            // }
+        } else {
+            bodyElement.classList.remove('dark-theme');
+            themeToggleButton.innerHTML = '<i class="fas fa-moon"></i>'; // Show moon icon
+            // Optional: Enable light Pygments theme, disable dark
+            // if (pygmentsThemeLink && pygmentsThemeLightLink) {
+            //     pygmentsThemeLink.disabled = true;
+            //     pygmentsThemeLightLink.disabled = false;
+            // }
+        }
+    }
+
+    function toggleTheme() {
+        const currentTheme = bodyElement.classList.contains('dark-theme') ? DARK_THEME : LIGHT_THEME;
+        const newTheme = currentTheme === DARK_THEME ? LIGHT_THEME : DARK_THEME;
+        applyTheme(newTheme);
+        localStorage.setItem(THEME_KEY, newTheme); // Save preference
+    }
+
+    function loadTheme() {
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        // If no theme saved, check system preference
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initialTheme = savedTheme || (prefersDark ? DARK_THEME : LIGHT_THEME);
+        applyTheme(initialTheme);
+    }
 
     // --- Event Listeners ---
     sendButton.addEventListener('click', sendMessage);
     clearButton.addEventListener('click', clearChat);
+    themeToggleButton.addEventListener('click', toggleTheme); // Add listener for theme toggle
 
     messageInput.addEventListener('keypress', (event) => {
-        // Send message on Enter key press (unless Shift+Enter for newline)
         if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault(); // Prevent default newline behavior
+            event.preventDefault();
             sendMessage();
         }
     });
 
-     // Auto-resize textarea height
-     messageInput.addEventListener('input', () => {
-        messageInput.style.height = 'auto'; // Reset height
-        messageInput.style.height = (messageInput.scrollHeight) + 'px'; // Set to content height
+    messageInput.addEventListener('input', adjustTextareaHeight);
+
+     // Listen for system theme changes (optional)
+     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+        // Only apply if no theme is explicitly saved by the user
+        if (!localStorage.getItem(THEME_KEY)) {
+            applyTheme(event.matches ? DARK_THEME : LIGHT_THEME);
+        }
     });
+
+
+    // --- Initial Setup ---
+    loadTheme(); // Load saved theme or detect system preference
+    addInitialGreeting();
+    adjustTextareaHeight();
 
 });
