@@ -5,16 +5,16 @@ import markdown # To convert Gemini's Markdown response to HTML
 
 # --- Configuration ---
 # Load API Key from environment variable
-API_KEY = ##############
+API_KEY = ######
 
 # You can change the model if needed'
-MODEL_NAME = #########
+MODEL_NAME = #####
 
 # --- Flask App Setup ---
 app = Flask(__name__)
 # Secret key is needed for session management (to store chat history)
 # IMPORTANT: Change this to a strong, random secret key in a real application!
-app.secret_key = ##########
+app.secret_key = #####
 
 # --- Gemini API Setup ---
 gemini_configured = False
